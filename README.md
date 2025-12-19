@@ -2,6 +2,8 @@
 
 Format, validate, and minify JSON instantly with a modern web interface.
 
+![JSON Formatter & Validator](preview.jpg)
+
 ## Features
 
 - ✅ **JSON Validation** - Validate JSON syntax with detailed error messages
