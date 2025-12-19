@@ -196,21 +196,30 @@
 
         // Parse error details
         function parseJSONError(error) {
+            let errorMsg = error.message;
+            
+            // Try to extract position information from error message
             const positionMatch = error.message.match(/position (\d+)/);
             const lineMatch = error.message.match(/line (\d+)/);
             const columnMatch = error.message.match(/column (\d+)/);
             
-            let errorMsg = error.message;
-            
-            if (positionMatch) {
-                const position = parseInt(positionMatch[1]);
-                const input = jsonInput.value;
-                const lines = input.substring(0, position).split('\n');
-                const line = lines.length;
-                const column = lines[lines.length - 1].length + 1;
-                errorMsg = `Syntax error at line ${line}, column ${column}: ${error.message}`;
-            } else if (lineMatch && columnMatch) {
-                errorMsg = `Syntax error at line ${lineMatch[1]}, column ${columnMatch[1]}: ${error.message}`;
+            try {
+                if (positionMatch) {
+                    const position = parseInt(positionMatch[1]);
+                    const input = jsonInput.value;
+                    const lines = input.substring(0, position).split('\n');
+                    const line = lines.length;
+                    const column = lines[lines.length - 1].length + 1;
+                    errorMsg = `Syntax error at line ${line}, column ${column}: ${error.message}`;
+                } else if (lineMatch && columnMatch) {
+                    errorMsg = `Syntax error at line ${lineMatch[1]}, column ${columnMatch[1]}: ${error.message}`;
+                } else {
+                    // Generic error message if no position info found
+                    errorMsg = `Syntax error: ${error.message}`;
+                }
+            } catch (parseError) {
+                // If error parsing fails, return the original error message
+                errorMsg = `Syntax error: ${error.message}`;
             }
             
             return errorMsg;
@@ -319,14 +328,49 @@
                 return;
             }
             
-            navigator.clipboard.writeText(output).then(() => {
-                copySuccess.classList.remove('hidden');
-                setTimeout(() => {
-                    copySuccess.classList.add('hidden');
-                }, 3000);
-            }).catch(err => {
-                showError('Failed to copy to clipboard: ' + err.message);
-            });
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(output).then(() => {
+                    copySuccess.classList.remove('hidden');
+                    setTimeout(() => {
+                        copySuccess.classList.add('hidden');
+                    }, 3000);
+                }).catch(err => {
+                    // Fallback to legacy method
+                    copyToClipboardFallback(output);
+                });
+            } else {
+                // Use fallback for older browsers or non-HTTPS contexts
+                copyToClipboardFallback(output);
+            }
+        }
+        
+        // Fallback copy method for older browsers
+        function copyToClipboardFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copySuccess.classList.remove('hidden');
+                    setTimeout(() => {
+                        copySuccess.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    showError('Failed to copy to clipboard. Please copy manually.');
+                }
+            } catch (err) {
+                showError('Copy to clipboard not supported. Please copy manually.');
+            } finally {
+                document.body.removeChild(textArea);
+            }
         }
 
         // Clear input
