@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter & Validator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .error-line {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid #ef4444;
+        }
+        
+        textarea {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        .copy-success {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">JSON Formatter & Validator</h1>
+            <p class="text-gray-600">Format, validate, and minify JSON instantly</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Input Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">JSON Input</h2>
+                    <button onclick="clearInput()" class="text-sm text-red-600 hover:text-red-800 transition-colors">
+                        Clear
+                    </button>
+                </div>
+                <textarea 
+                    id="jsonInput" 
+                    class="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder='Enter your JSON here...&#10;&#10;Example:&#10;{&#10;  "name": "John Doe",&#10;  "age": 30,&#10;  "city": "New York"&#10;}'
+                ></textarea>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <button 
+                        onclick="validateJSON()" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+                    >
+                        Validate
+                    </button>
+                    <button 
+                        onclick="formatJSON()" 
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm"
+                    >
+                        Format
+                    </button>
+                    <button 
+                        onclick="minifyJSON()" 
+                        class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium shadow-sm"
+                    >
+                        Minify
+                    </button>
+                    <button 
+                        onclick="copyToClipboard()" 
+                        class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-sm"
+                    >
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Output</h2>
+                    <span id="statusBadge" class="hidden px-3 py-1 text-sm rounded-full"></span>
+                </div>
+                
+                <!-- Error Display -->
+                <div id="errorDisplay" class="hidden mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold text-red-800">Invalid JSON</h3>
+                            <p id="errorMessage" class="text-red-700 text-sm mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success Display -->
+                <div id="successDisplay" class="hidden mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold text-green-800">Valid JSON</h3>
+                            <p id="successMessage" class="text-green-700 text-sm mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Copy Success Message -->
+                <div id="copySuccess" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-700 text-sm text-center copy-success">
+                    ✓ Copied to clipboard!
+                </div>
+
+                <textarea 
+                    id="jsonOutput" 
+                    class="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Output will appear here..."
+                    readonly
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div id="statsSection" class="hidden mt-6 bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Statistics</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-600" id="charCount">0</p>
+                    <p class="text-sm text-gray-600">Characters</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-600" id="lineCount">0</p>
+                    <p class="text-sm text-gray-600">Lines</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-purple-600" id="objectCount">0</p>
+                    <p class="text-sm text-gray-600">Objects</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-orange-600" id="arrayCount">0</p>
+                    <p class="text-sm text-gray-600">Arrays</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-gray-600 text-sm">
+            <p>Built with HTML, Tailwind CSS, and JavaScript</p>
+        </footer>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const jsonInput = document.getElementById('jsonInput');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const successDisplay = document.getElementById('successDisplay');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const copySuccess = document.getElementById('copySuccess');
+        const statsSection = document.getElementById('statsSection');
+
+        // Hide messages
+        function hideMessages() {
+            errorDisplay.classList.add('hidden');
+            successDisplay.classList.add('hidden');
+            copySuccess.classList.add('hidden');
+        }
+
+        // Show error
+        function showError(message) {
+            hideMessages();
+            errorMessage.textContent = message;
+            errorDisplay.classList.remove('hidden');
+            jsonOutput.value = '';
+            statsSection.classList.add('hidden');
+        }
+
+        // Show success
+        function showSuccess(message) {
+            hideMessages();
+            successMessage.textContent = message;
+            successDisplay.classList.remove('hidden');
+        }
+
+        // Parse error details
+        function parseJSONError(error) {
+            let errorMsg = error.message;
+            
+            // Try to extract position information from error message
+            const positionMatch = error.message.match(/position (\d+)/);
+            const lineMatch = error.message.match(/line (\d+)/);
+            const columnMatch = error.message.match(/column (\d+)/);
+            
+            try {
+                if (positionMatch) {
+                    const position = parseInt(positionMatch[1]);
+                    const input = jsonInput.value;
+                    const lines = input.substring(0, position).split('\n');
+                    const line = lines.length;
+                    const column = lines[lines.length - 1].length + 1;
+                    errorMsg = `Syntax error at line ${line}, column ${column}: ${error.message}`;
+                } else if (lineMatch && columnMatch) {
+                    errorMsg = `Syntax error at line ${lineMatch[1]}, column ${columnMatch[1]}: ${error.message}`;
+                } else {
+                    // Generic error message if no position info found
+                    errorMsg = `Syntax error: ${error.message}`;
+                }
+            } catch (parseError) {
+                // If error parsing fails, return the original error message
+                errorMsg = `Syntax error: ${error.message}`;
+            }
+            
+            return errorMsg;
+        }
+
+        // Count objects and arrays in JSON
+        function countStructures(obj) {
+            let objects = 0;
+            let arrays = 0;
+            
+            function traverse(item) {
+                if (Array.isArray(item)) {
+                    arrays++;
+                    item.forEach(traverse);
+                } else if (typeof item === 'object' && item !== null) {
+                    objects++;
+                    Object.values(item).forEach(traverse);
+                }
+            }
+            
+            traverse(obj);
+            return { objects, arrays };
+        }
+
+        // Update statistics
+        function updateStats(text, parsed = null) {
+            const charCount = text.length;
+            const lineCount = text.split('\n').length;
+            
+            document.getElementById('charCount').textContent = charCount.toLocaleString();
+            document.getElementById('lineCount').textContent = lineCount;
+            
+            if (parsed) {
+                const counts = countStructures(parsed);
+                document.getElementById('objectCount').textContent = counts.objects;
+                document.getElementById('arrayCount').textContent = counts.arrays;
+                statsSection.classList.remove('hidden');
+            }
+        }
+
+        // Validate JSON
+        function validateJSON() {
+            const input = jsonInput.value.trim();
+            
+            if (!input) {
+                showError('Please enter JSON to validate');
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(input);
+                showSuccess('JSON is valid!');
+                jsonOutput.value = JSON.stringify(parsed, null, 2);
+                updateStats(jsonOutput.value, parsed);
+            } catch (error) {
+                showError(parseJSONError(error));
+            }
+        }
+
+        // Format JSON
+        function formatJSON() {
+            const input = jsonInput.value.trim();
+            
+            if (!input) {
+                showError('Please enter JSON to format');
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(input);
+                const formatted = JSON.stringify(parsed, null, 2);
+                jsonOutput.value = formatted;
+                showSuccess('JSON formatted successfully!');
+                updateStats(formatted, parsed);
+            } catch (error) {
+                showError(parseJSONError(error));
+            }
+        }
+
+        // Minify JSON
+        function minifyJSON() {
+            const input = jsonInput.value.trim();
+            
+            if (!input) {
+                showError('Please enter JSON to minify');
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(input);
+                const minified = JSON.stringify(parsed);
+                jsonOutput.value = minified;
+                showSuccess('JSON minified successfully!');
+                updateStats(minified, parsed);
+            } catch (error) {
+                showError(parseJSONError(error));
+            }
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            const output = jsonOutput.value;
+            
+            if (!output) {
+                showError('No output to copy. Please validate, format, or minify JSON first.');
+                return;
+            }
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(output).then(() => {
+                    copySuccess.classList.remove('hidden');
+                    setTimeout(() => {
+                        copySuccess.classList.add('hidden');
+                    }, 3000);
+                }).catch(err => {
+                    // Fallback to legacy method
+                    copyToClipboardFallback(output);
+                });
+            } else {
+                // Use fallback for older browsers or non-HTTPS contexts
+                copyToClipboardFallback(output);
+            }
+        }
+        
+        // Fallback copy method for older browsers
+        function copyToClipboardFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copySuccess.classList.remove('hidden');
+                    setTimeout(() => {
+                        copySuccess.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    showError('Failed to copy to clipboard. Please copy manually.');
+                }
+            } catch (err) {
+                showError('Copy to clipboard not supported. Please copy manually.');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // Clear input
+        function clearInput() {
+            jsonInput.value = '';
+            jsonOutput.value = '';
+            hideMessages();
+            statsSection.classList.add('hidden');
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Enter to validate
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                validateJSON();
+            }
+            // Ctrl/Cmd + Shift + F to format
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                formatJSON();
+            }
+            // Ctrl/Cmd + Shift + M to minify
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M') {
+                e.preventDefault();
+                minifyJSON();
+            }
+        });
+    </script>
+</body>
+</html>
